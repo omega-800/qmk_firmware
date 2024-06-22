@@ -96,18 +96,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 const key_override_t quot_key_override =
     ko_make_basic(MOD_MASK_SHIFT, CH_QUOT, CH_DQUO);  // shift ' is "
 const key_override_t lbrc_key_override =
-    ko_make_basic(MOD_MASK_SHIFT, CH_LBRC, CH_LABK);  // shift [ is <
+    ko_make_basic(MOD_MASK_SHIFT, CH_LBRC, CH_LCBR);  // shift [ is {
 const key_override_t rbrc_key_override =
-    ko_make_basic(MOD_MASK_SHIFT, CH_RBRC, CH_RABK);  // shift ] is >
+    ko_make_basic(MOD_MASK_SHIFT, CH_RBRC, CH_RCBR);  // shift ] is }
 const key_override_t lprn_key_override =
-    ko_make_basic(MOD_MASK_SHIFT, CH_LCBR, CH_LPRN);  // shift { is (
+    ko_make_basic(MOD_MASK_SHIFT, CH_LABK, CH_LPRN);  // shift < is (
 const key_override_t rprn_key_override =
-    ko_make_basic(MOD_MASK_SHIFT, CH_RCBR, CH_RPRN);  // shift } is )
+    ko_make_basic(MOD_MASK_SHIFT, CH_RABK, CH_RPRN);  // shift > is )
 const key_override_t eql_key_override =
     ko_make_basic(MOD_MASK_SHIFT, CH_EQL,  CH_PLUS);  // shift = is +
 const key_override_t slsh_key_override =
     ko_make_basic(MOD_MASK_SHIFT, CH_SLSH, CH_QUES);  // shift / is ?
-// does not work
 const key_override_t tild_key_override =
     ko_make_basic(MOD_MASK_SHIFT, CU_TILD, CU_CIRC);  // shift ~ is ^
 const key_override_t dlr_key_override =
@@ -121,7 +120,7 @@ const key_override_t** key_overrides = (const key_override_t*[]){
     &rprn_key_override,
     &eql_key_override,
     &slsh_key_override,
-    //&tild_key_override,
+    &tild_key_override,
     &dlr_key_override,
     NULL
 };
@@ -137,7 +136,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      * +-----------------------------------------+                             +-----------------------------------------+
      * | TAB  |   q  |   w  |   e  |   r  |   t  |                             |   z  |   u  |   i  |   o  |   p  |  $|  |
      * |------+------+------+------+------+------|                             |------+------+------+------+------+------|
-     * | CAPS |   a  |   s  |   d  |   f  |   g  |                             |   h  |   j  |   k  |   l  |  {(  |  })  |
+     * | CAPS |   a  |   s  |   d  |   f  |   g  |                             |   h  |   j  |   k  |   l  |  [{  |  ]}  |
      * |------+------+------+------+------+------|                             |------+------+------+------+------+------|
      * | SHFT |   y  |   x  |   c  |   v  |   b  |                             |   n  |   m  |  ,;  |  .:  |  -_  | SHFT |
      * +-------------+------+------+-------------+                             +-------------+------+------+-------------+
@@ -152,7 +151,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      */
     [_BASE] = LAYOUT_omega(
         KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,               KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,     CH_DLR,
-        KC_CAPS, KC_A,    KC_S,    KC_D,    KC_F,    KC_G,               KC_H,    KC_J,    KC_K,    KC_L,    CH_LCBR,  CH_RCBR,
+        KC_CAPS, KC_A,    KC_S,    KC_D,    KC_F,    KC_G,               KC_H,    KC_J,    KC_K,    KC_L,    CH_LBRC,  CH_RBRC,
         KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,               KC_N,    KC_M,    CH_COMM, CH_DOT,  CH_MINS,  KC_RSFT,
                           CU_TILD, CH_QUOT, KC_HOME, RAISE,              LOWER,   KC_END,  CH_EQL,  CH_SLSH,
                  KC_ESC, KC_LGUI, KC_LCTL,                                                KC_ENT,  KC_LALT,  KC_SPC
@@ -162,19 +161,19 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      * +-----------------------------------------+                             +-----------------------------------------+
      * |  F1  |  F2  |  F3  |  F4  |  F5  |  F6  |                             |  F7  |  F8  |  F9  |  F10 |  F11 |  F12 |
      * |------+------+------+------+------+------|                             |------+------+------+------+------+------|
-     * | BSPC | BRID | BRIU | MUTE | VOLD | VOLU |                             | LEFT | DOWN |  UP  | RGHT |  [<  |  ]>  |
+     * | BSPC | BRID | BRIU | MUTE | VOLD | VOLU |                             | LEFT | DOWN |  UP  | RGHT |  <(  |  >)  |
      * |------+------+------+------+------+------|                             |------+------+------+------+------+------|
      * | TGSL | CLR  | FIND | MPRV | MPLY | MNXT |                             |      |      |      |      |      |      |
      * +-------------+------+------+-------------+                             +-------------+------+------+-------------+
-     *               |  ^   |  `   |                                                         |  *   |  \   |
+     *               |      |  `   |                                                         |  *   |  \   |
      *               +-------------+                                                         +-------------+
      */
     [_LOWER] = LAYOUT_omega(
         KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,               KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,
-        KC_BSPC, KC_BRID, KC_BRIU, KC_MUTE, KC_VOLD, KC_VOLU,             KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT, CH_LBRC, CH_RBRC,
+        KC_BSPC, KC_BRID, KC_BRIU, KC_MUTE, KC_VOLD, KC_VOLU,             KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT, CH_LABK, CH_RABK,
         CU_TGSL, KC_CLR,  KC_FIND, KC_MPRV, KC_MPLY, KC_MNXT,             _______, _______, _______, _______, _______, _______,
-                          CU_CIRC, CU_GRV,  _______, _______,             _______, _______, CH_ASTR, CH_BSLS,
-                 _______, _______, KC_RCTL,                                                 _______, _______, _______
+                          _______, CU_GRV,  _______, _______,             _______, _______, CH_ASTR, CH_BSLS,
+                 _______, _______, _______,                                                 _______, _______, _______
     ),
 
     /* Upper

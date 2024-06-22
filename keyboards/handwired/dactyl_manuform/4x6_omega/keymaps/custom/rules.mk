@@ -13,4 +13,6 @@ AUDIO_ENABLE = no           # Audio output
 SPLIT_KEYBOARD = yes
 UNICODE_ENABLE = yes
 UNICODE_COMMON = yes
+#SRC += features/custom_shift_keys.c
+KEY_OVERRIDE_ENABLE = yes
 #BOOTLOADER = atmel-dfu
