@@ -86,6 +86,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef POINTING_DEVICE_ENABLE
 #    include "pointing_device.h"
 #endif
+#ifdef DIGITIZER_ENABLE
+#    include "digitizer.h"
+#endif
 #ifdef MIDI_ENABLE
 #    include "process_midi.h"
 #endif
@@ -140,6 +143,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef OS_DETECTION_ENABLE
 #    include "os_detection.h"
 #endif
+#ifdef LAYER_LOCK_ENABLE
+#    include "layer_lock.h"
+#endif
 
 static uint32_t last_input_modification_time = 0;
 uint32_t        last_input_activity_time(void) {
@@ -182,11 +188,23 @@ void last_pointing_device_activity_trigger(void) {
     last_pointing_device_modification_time = last_input_modification_time = sync_timer_read32();
 }
 
-void set_activity_timestamps(uint32_t matrix_timestamp, uint32_t encoder_timestamp, uint32_t pointing_device_timestamp) {
+static uint32_t last_digitizer_modification_time = 0;
+uint32_t        last_digitizer_activity_time(void) {
+    return last_digitizer_modification_time;
+}
+uint32_t last_digitizer_activity_elapsed(void) {
+    return sync_timer_elapsed32(last_digitizer_modification_time);
+}
+void last_digitizer_activity_trigger(void) {
+    last_digitizer_modification_time = last_input_modification_time = sync_timer_read32();
+}
+
+void set_activity_timestamps(uint32_t matrix_timestamp, uint32_t encoder_timestamp, uint32_t pointing_device_timestamp, uint32_t digitizer_timestamp) {
     last_matrix_modification_time          = matrix_timestamp;
     last_encoder_modification_time         = encoder_timestamp;
     last_pointing_device_modification_time = pointing_device_timestamp;
-    last_input_modification_time           = MAX(matrix_timestamp, MAX(encoder_timestamp, pointing_device_timestamp));
+    last_digitizer_modification_time       = digitizer_timestamp;
+    last_input_modification_time           = MAX(matrix_timestamp, MAX(encoder_timestamp, MAX(pointing_device_timestamp, digitizer_timestamp)));
 }
 
 // Only enable this if console is enabled to print to
@@ -286,6 +304,21 @@ __attribute__((weak)) void keyboard_pre_init_kb(void) {
     keyboard_pre_init_user();
 }
 
+/** \brief keyboard_pre_init_modules
+ *
+ * FIXME: needs doc
+ */
+__attribute__((weak)) void keyboard_pre_init_modules(void) {}
+
+/** \brief keyboard_pre_init_quantum
+ *
+ * FIXME: needs doc
+ */
+void keyboard_pre_init_quantum(void) {
+    keyboard_pre_init_modules();
+    keyboard_pre_init_kb();
+}
+
 /** \brief keyboard_post_init_user
  *
  * FIXME: needs doc
@@ -300,6 +333,23 @@ __attribute__((weak)) void keyboard_post_init_user(void) {}
 
 __attribute__((weak)) void keyboard_post_init_kb(void) {
     keyboard_post_init_user();
+}
+
+/** \brief keyboard_post_init_modules
+ *
+ * FIXME: needs doc
+ */
+
+__attribute__((weak)) void keyboard_post_init_modules(void) {}
+
+/** \brief keyboard_post_init_quantum
+ *
+ * FIXME: needs doc
+ */
+
+void keyboard_post_init_quantum(void) {
+    keyboard_post_init_modules();
+    keyboard_post_init_kb();
 }
 
 /** \brief matrix_can_read
@@ -320,7 +370,7 @@ void keyboard_setup(void) {
     eeprom_driver_init();
 #endif
     matrix_setup();
-    keyboard_pre_init_kb();
+    keyboard_pre_init_quantum();
 }
 
 #ifndef SPLIT_KEYBOARD
@@ -352,6 +402,13 @@ __attribute__((weak)) bool should_process_keypress(void) {
     return is_keyboard_master();
 }
 
+/** \brief housekeeping_task_modules
+ *
+ * Codegen will override this if community modules are enabled.
+ * This is specific to keyboard-level functionality.
+ */
+__attribute__((weak)) void housekeeping_task_modules(void) {}
+
 /** \brief housekeeping_task_kb
  *
  * Override this function if you have a need to execute code for every keyboard main loop iteration.
@@ -371,6 +428,7 @@ __attribute__((weak)) void housekeeping_task_user(void) {}
  * Invokes hooks for executing code after QMK is done after each loop iteration.
  */
 void housekeeping_task(void) {
+    housekeeping_task_modules();
     housekeeping_task_kb();
     housekeeping_task_user();
 }
@@ -475,6 +533,10 @@ void keyboard_init(void) {
 #ifdef SPLIT_KEYBOARD
     split_post_init();
 #endif
+#ifdef DIGITIZER_ENABLE
+    // init before pointing device
+    digitizer_init();
+#endif
 #ifdef POINTING_DEVICE_ENABLE
     // init after split init
     pointing_device_init();
@@ -490,7 +552,7 @@ void keyboard_init(void) {
     debug_enable = true;
 #endif
 
-    keyboard_post_init_kb(); /* Always keep this last */
+    keyboard_post_init_quantum(); /* Always keep this last */
 }
 
 /** \brief key_event_task
@@ -500,10 +562,10 @@ void keyboard_init(void) {
  */
 void switch_events(uint8_t row, uint8_t col, bool pressed) {
 #if defined(LED_MATRIX_ENABLE)
-    process_led_matrix(row, col, pressed);
+    led_matrix_handle_key_event(row, col, pressed);
 #endif
 #if defined(RGB_MATRIX_ENABLE)
-    process_rgb_matrix(row, col, pressed);
+    rgb_matrix_handle_key_event(row, col, pressed);
 #endif
 }
 
@@ -655,6 +717,10 @@ void quantum_task(void) {
 #ifdef SECURE_ENABLE
     secure_task();
 #endif
+
+#ifdef LAYER_LOCK_ENABLE
+    layer_lock_task();
+#endif
 }
 
 /** \brief Main task that is repeatedly called as fast as possible. */
@@ -691,6 +757,14 @@ void keyboard_task(void) {
 #ifdef ENCODER_ENABLE
     if (encoder_task()) {
         last_encoder_activity_trigger();
+        activity_has_occurred = true;
+    }
+#endif
+
+#ifdef DIGITIZER_ENABLE
+    // The digitizer may be a pointing device driver, so update its state before the pointing device
+    if (digitizer_task()) {
+        last_digitizer_activity_trigger();
         activity_has_occurred = true;
     }
 #endif

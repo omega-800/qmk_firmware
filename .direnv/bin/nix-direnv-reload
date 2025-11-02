@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -e
+if [[ ! -d "/home/omega/ws/code/qmk_firmware_old" ]]; then
+  echo "Cannot find source directory; Did you move it?"
+  echo "(Looking for "/home/omega/ws/code/qmk_firmware_old")"
+  echo 'Cannot force reload with this script - use "direnv reload" manually and then try again'
+  exit 1
+fi
+
+# rebuild the cache forcefully
+_nix_direnv_force_reload=1 direnv exec "/home/omega/ws/code/qmk_firmware_old" true
+
+# Update the mtime for .envrc.
+# This will cause direnv to reload again - but without re-building.
+touch "/home/omega/ws/code/qmk_firmware_old/.envrc"
+
+# Also update the timestamp of whatever profile_rc we have.
+# This makes sure that we know we are up to date.
+touch -r "/home/omega/ws/code/qmk_firmware_old/.envrc" "/home/omega/ws/code/qmk_firmware_old/.direnv"/*.rc

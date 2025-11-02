@@ -5,7 +5,16 @@ SRC +=	\
 	$(PROTOCOL_DIR)/usb_util.c \
 
 SHARED_EP_ENABLE = no
-MOUSE_SHARED_EP ?= yes
+# Ideally if both the digitizer and mouse are enabled, we
+# would like to have them on different endpoints. If they
+# are on the same endpoint, PTP compliant hosts will ignore
+# all mouse events once they have sent the input mode feature
+# report. 
+ifeq ($(strip $(DIGITIZER_ENABLE)), yes)
+    MOUSE_SHARED_EP ?= no
+else
+    MOUSE_SHARED_EP ?= yes
+endif
 ifeq ($(strip $(KEYBOARD_SHARED_EP)), yes)
     OPT_DEFS += -DKEYBOARD_SHARED_EP
     SHARED_EP_ENABLE = yes
@@ -13,6 +22,14 @@ ifeq ($(strip $(KEYBOARD_SHARED_EP)), yes)
     # you can't share kbd without sharing mouse;
     # that would be a very unexpected use case anyway
     MOUSE_SHARED_EP = yes
+    DIGITIZER_SHARED_EP = yes
+endif
+
+ifeq ($(strip $(MOUSE_SHARED_EP)), yes)
+    # With the current usb_descriptor.c code,
+    # you can't share kbd without sharing mouse;
+    # that would be a very unexpected use case anyway
+    DIGITIZER_SHARED_EP = yes
 endif
 
 ifeq ($(strip $(MOUSE_ENABLE)), yes)
@@ -54,16 +71,16 @@ ifeq ($(strip $(NKRO_ENABLE)), yes)
     endif
 endif
 
-ifeq ($(strip $(RING_BUFFERED_6KRO_REPORT_ENABLE)), yes)
-    OPT_DEFS += -DRING_BUFFERED_6KRO_REPORT_ENABLE
-endif
-
 ifeq ($(strip $(NO_SUSPEND_POWER_DOWN)), yes)
     OPT_DEFS += -DNO_SUSPEND_POWER_DOWN
 endif
 
 ifeq ($(strip $(NO_USB_STARTUP_CHECK)), yes)
     OPT_DEFS += -DNO_USB_STARTUP_CHECK
+endif
+
+ifeq ($(strip $(USB_WAIT_FOR_ENUMERATION)), yes)
+    OPT_DEFS += -DUSB_WAIT_FOR_ENUMERATION
 endif
 
 ifeq ($(strip $(JOYSTICK_SHARED_EP)), yes)
@@ -79,14 +96,9 @@ ifeq ($(strip $(JOYSTICK_ENABLE)), yes)
     endif
 endif
 
-ifeq ($(strip $(DIGITIZER_SHARED_EP)), yes)
-    OPT_DEFS += -DDIGITIZER_SHARED_EP
-    SHARED_EP_ENABLE = yes
-endif
-
 ifeq ($(strip $(DIGITIZER_ENABLE)), yes)
     OPT_DEFS += -DDIGITIZER_ENABLE
-    ifeq ($(strip $(SHARED_EP_ENABLE)), yes)
+    ifeq ($(strip $(DIGITIZER_SHARED_EP)), yes)
         OPT_DEFS += -DDIGITIZER_SHARED_EP
         SHARED_EP_ENABLE = yes
     endif

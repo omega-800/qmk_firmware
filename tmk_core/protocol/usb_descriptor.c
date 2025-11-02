@@ -49,6 +49,16 @@
 #    include "os_detection.h"
 #endif
 
+#if defined(SERIAL_NUMBER) || (defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE)
+
+#    define HAS_SERIAL_NUMBER
+
+#    if defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE
+#        include "hardware_id.h"
+#    endif
+
+#endif // defined(SERIAL_NUMBER) || (defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE)
+
 // clang-format off
 
 /*
@@ -155,20 +165,34 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
 #    endif
             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
 
-            // Vertical wheel (1 byte)
-            HID_RI_USAGE(8, 0x38),         // Wheel
+            // Vertical wheel (1 or 2 bytes)
+            HID_RI_USAGE(8, 0x38),     // Wheel
+#    ifndef WHEEL_EXTENDED_REPORT
             HID_RI_LOGICAL_MINIMUM(8, -127),
             HID_RI_LOGICAL_MAXIMUM(8, 127),
             HID_RI_REPORT_COUNT(8, 0x01),
             HID_RI_REPORT_SIZE(8, 0x08),
+#    else
+            HID_RI_LOGICAL_MINIMUM(16, -32767),
+            HID_RI_LOGICAL_MAXIMUM(16,  32767),
+            HID_RI_REPORT_COUNT(8, 0x01),
+            HID_RI_REPORT_SIZE(8, 0x10),
+#    endif
             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
-            // Horizontal wheel (1 byte)
-            HID_RI_USAGE_PAGE(8, 0x0C),    // Consumer
-            HID_RI_USAGE(16, 0x0238),      // AC Pan
+            // Horizontal wheel (1 or 2 bytes)
+            HID_RI_USAGE_PAGE(8, 0x0C),// Consumer
+            HID_RI_USAGE(16, 0x0238),  // AC Pan
+#    ifndef WHEEL_EXTENDED_REPORT
             HID_RI_LOGICAL_MINIMUM(8, -127),
             HID_RI_LOGICAL_MAXIMUM(8, 127),
             HID_RI_REPORT_COUNT(8, 0x01),
             HID_RI_REPORT_SIZE(8, 0x08),
+#    else
+            HID_RI_LOGICAL_MINIMUM(16, -32767),
+            HID_RI_LOGICAL_MAXIMUM(16,  32767),
+            HID_RI_REPORT_COUNT(8, 0x01),
+            HID_RI_REPORT_SIZE(8, 0x10),
+#    endif
             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
         HID_RI_END_COLLECTION(0),
     HID_RI_END_COLLECTION(0),
@@ -223,6 +247,23 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
 #    endif
 
+#    ifdef JOYSTICK_HAS_HAT
+            // Hat Switch (4 bits)
+            HID_RI_USAGE(8, 0x39), // Hat Switch
+            HID_RI_LOGICAL_MINIMUM(8, 0x00),
+            HID_RI_LOGICAL_MAXIMUM(8, 0x07),
+            HID_RI_PHYSICAL_MINIMUM(8, 0),
+            HID_RI_PHYSICAL_MAXIMUM(16, 315),
+            HID_RI_UNIT(8, 0x14),  // Degree, English Rotation
+            HID_RI_REPORT_COUNT(8, 1),
+            HID_RI_REPORT_SIZE(8, 4),
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE | HID_IOF_NULLSTATE),
+            // Padding (4 bits)
+            HID_RI_REPORT_COUNT(8, 0x04),
+            HID_RI_REPORT_SIZE(8, 0x01),
+            HID_RI_INPUT(8, HID_IOF_CONSTANT),
+#    endif
+
 #    if JOYSTICK_BUTTON_COUNT > 0
             HID_RI_USAGE_PAGE(8, 0x09), // Button
             HID_RI_USAGE_MINIMUM(8, 0x01),
@@ -253,12 +294,11 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM DigitizerReport[] = {
 const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
 #        define SHARED_REPORT_STARTED
 #    endif
+#    ifdef DIGITIZER_HAS_STYLUS
     HID_RI_USAGE_PAGE(8, 0x0D),            // Digitizers
-    HID_RI_USAGE(8, 0x01),                 // Digitizer
+    HID_RI_USAGE(8, 0x02),                 // Pen
     HID_RI_COLLECTION(8, 0x01),            // Application
-#    ifdef DIGITIZER_SHARED_EP
-        HID_RI_REPORT_ID(8, REPORT_ID_DIGITIZER),
-#    endif
+        HID_RI_REPORT_ID(8, REPORT_ID_DIGITIZER_STYLUS),
         HID_RI_USAGE(8, 0x20),             // Stylus
         HID_RI_COLLECTION(8, 0x00),        // Physical
             // In Range, Tip Switch & Barrel Switch (3 bits)
@@ -276,16 +316,188 @@ const USB_Descriptor_HIDReport_Datatype_t PROGMEM SharedReport[] = {
 
             // X/Y Position (4 bytes)
             HID_RI_USAGE_PAGE(8, 0x01),    // Generic Desktop
-            HID_RI_USAGE(8, 0x30),         // X
-            HID_RI_USAGE(8, 0x31),         // Y
-            HID_RI_LOGICAL_MAXIMUM(16, 0x7FFF),
-            HID_RI_REPORT_COUNT(8, 0x02),
-            HID_RI_REPORT_SIZE(8, 0x10),
-            HID_RI_UNIT(8, 0x33),          // Inch, English Linear
+            HID_RI_PUSH(0),
+            HID_RI_LOGICAL_MINIMUM(8, 0x0),
+            HID_RI_LOGICAL_MAXIMUM(16, DIGITIZER_RESOLUTION_X),
+            HID_RI_REPORT_SIZE(8, 16),
             HID_RI_UNIT_EXPONENT(8, 0x0E), // -2
+            HID_RI_UNIT(8, 0x11),          // CM, English Linear
+            HID_RI_USAGE(8, 0x30),         // X
+            HID_RI_PHYSICAL_MINIMUM(8, 0x0),
+            HID_RI_PHYSICAL_MAXIMUM(16, (DIGITIZER_WIDTH_MM * 10)),
+            HID_RI_REPORT_COUNT(8, 0x01),
             HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+            HID_RI_LOGICAL_MAXIMUM(16, DIGITIZER_RESOLUTION_Y),
+            HID_RI_PHYSICAL_MAXIMUM(16, (DIGITIZER_HEIGHT_MM * 10)),
+            HID_RI_USAGE(8, 0x31),         // Y
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+            HID_RI_POP(0),
         HID_RI_END_COLLECTION(0),
     HID_RI_END_COLLECTION(0),
+#    endif
+
+#    if DIGITIZER_FINGER_COUNT > 0
+    HID_RI_USAGE_PAGE(8, 0x0D),            // Digitizers
+    HID_RI_USAGE(8, 0x05),                 // Touchpad
+    HID_RI_COLLECTION(8, 0x01),            // Application
+        HID_RI_REPORT_ID(8, REPORT_ID_DIGITIZER),
+// The digitizer finger report is large and repetitive, so it has been moved into a macro
+#        define DIGITIZER_FINGER_REPORT                                              \
+        HID_RI_USAGE_PAGE(8, 0x0D),        /*  Digitizers */                     \
+        HID_RI_USAGE(8, 0x22),             /*  Finger */                         \
+        HID_RI_COLLECTION(8, 0x00),        /*  Physical */                       \
+            HID_RI_PUSH(0),                                                      \
+            HID_RI_LOGICAL_MINIMUM(8, 0x00),                                     \
+            HID_RI_LOGICAL_MAXIMUM(8, 0x01),                                     \
+            /*  Tip Switch, Confidence (2 bits) */                               \
+            HID_RI_USAGE(8, 0x47),         /*  Confidence */                     \
+            HID_RI_USAGE(8, 0x42),         /*  Tip Switch */                     \
+            HID_RI_REPORT_COUNT(8, 0x02),                                        \
+            HID_RI_REPORT_SIZE(8, 0x01),                                         \
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE), \
+                                                                                 \
+            /*  Padding (6 bits) */                                              \
+            HID_RI_REPORT_SIZE(8, 0x01),                                         \
+            HID_RI_REPORT_COUNT(8, 0x06),                                        \
+            HID_RI_INPUT(8, HID_IOF_CONSTANT),                                   \
+                                                                                 \
+            /*  Contact identifier (3 bits) */                                   \
+            HID_RI_REPORT_COUNT(8, 0x01),                                        \
+            HID_RI_REPORT_SIZE(8, 0x03),                                         \
+            HID_RI_LOGICAL_MAXIMUM(8, 0x05),                                     \
+            HID_RI_USAGE(8, 0x51),         /*  Contact identifier */             \
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE), \
+                                                                                 \
+            /*  Padding (5 bits) */                                              \
+            HID_RI_REPORT_SIZE(8, 0x01),                                         \
+            HID_RI_REPORT_COUNT(8, 0x05),                                        \
+            HID_RI_INPUT(8, HID_IOF_CONSTANT),                                   \
+                                                                                 \
+            /*  X/Y Position (4 bytes) */                                        \
+            HID_RI_USAGE_PAGE(8, 0x01),    /*  Generic Desktop */                \
+            HID_RI_LOGICAL_MINIMUM(8, 0x0),                                      \
+            HID_RI_LOGICAL_MAXIMUM(16, DIGITIZER_RESOLUTION_X),                  \
+            HID_RI_REPORT_SIZE(8, 16),                                           \
+            HID_RI_UNIT_EXPONENT(8, 0x0E), /*  -2 */                             \
+            HID_RI_UNIT(8, 0x11),          /*  CM, English Linear */             \
+            HID_RI_USAGE(8, 0x30),         /*  X */                              \
+            HID_RI_PHYSICAL_MINIMUM(8, 0x0),                                     \
+            HID_RI_PHYSICAL_MAXIMUM(16, (DIGITIZER_WIDTH_MM * 10)),              \
+            HID_RI_REPORT_COUNT(8, 0x01),                                        \
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE), \
+            HID_RI_LOGICAL_MAXIMUM(16, DIGITIZER_RESOLUTION_Y),                  \
+            HID_RI_PHYSICAL_MAXIMUM(16, (DIGITIZER_HEIGHT_MM * 10)),             \
+            HID_RI_USAGE(8, 0x31),         /*  Y */                              \
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE), \
+            HID_RI_POP(0),                                                       \
+        HID_RI_END_COLLECTION(0)
+        DIGITIZER_FINGER_REPORT,
+#    endif
+#    if DIGITIZER_FINGER_COUNT > 1
+        DIGITIZER_FINGER_REPORT,
+#    endif
+#    if DIGITIZER_FINGER_COUNT > 2
+        DIGITIZER_FINGER_REPORT,
+#    endif
+#    if DIGITIZER_FINGER_COUNT > 3
+        DIGITIZER_FINGER_REPORT,
+#    endif
+#    if DIGITIZER_FINGER_COUNT > 4
+        DIGITIZER_FINGER_REPORT,
+#    endif
+#    if DIGITIZER_FINGER_COUNT > 0
+        HID_RI_PUSH(0),
+        HID_RI_UNIT_EXPONENT(8, 0x0C),  // -4
+        HID_RI_UNIT(16, 0x1001),        // Seconds, SI Linear
+        HID_RI_USAGE_PAGE(8, 0x0D),    // Digitizers
+        HID_RI_USAGE(8, 0x56),         // Scan Time
+        HID_RI_PHYSICAL_MINIMUM(0),
+        HID_RI_LOGICAL_MINIMUM(0),
+        HID_RI_PHYSICAL_MAXIMUM(32, 65535),
+        HID_RI_LOGICAL_MAXIMUM(32, 65535),
+        HID_RI_REPORT_SIZE(8, 16),
+        HID_RI_REPORT_COUNT(8, 0x01),
+        HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+        HID_RI_USAGE(8, 0x54),         // Contact count
+        HID_RI_LOGICAL_MAXIMUM(8, 5),
+        HID_RI_REPORT_COUNT(8, 0x01),
+        HID_RI_REPORT_SIZE(8, 0x04),
+        HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+
+        // Buttons
+        HID_RI_USAGE_PAGE(8, 0x09),    // Buttons
+        HID_RI_USAGE(8, 0x01),         // Button 1
+        HID_RI_USAGE(8, 0x02),         // Button 2
+        HID_RI_USAGE(8, 0x03),         // Button 3
+        HID_RI_LOGICAL_MAXIMUM(8, 1),
+        HID_RI_REPORT_SIZE(8, 1),
+        HID_RI_REPORT_COUNT(8, 3),
+        HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+
+        // Padding (1 bits)
+        HID_RI_REPORT_SIZE(8, 0x01),
+        HID_RI_REPORT_COUNT(8, 0x01),
+        HID_RI_INPUT(8, HID_IOF_CONSTANT),
+
+        HID_RI_USAGE_PAGE(8, 0x0D),    // Digitizers
+        HID_RI_REPORT_ID(8, REPORT_ID_DIGITIZER_GET_FEATURE),
+        HID_RI_USAGE(8, 0x55),         // Contact Count Maximum
+        HID_RI_REPORT_SIZE(8, 0x04),
+        HID_RI_REPORT_COUNT(8, 0x01),
+        HID_RI_LOGICAL_MAXIMUM(8, 15),
+        HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+        HID_RI_USAGE(8, 0x59),         // Pad type
+        HID_RI_REPORT_SIZE(8, 0x03),
+        HID_RI_REPORT_COUNT(8, 0x01),
+        HID_RI_LOGICAL_MAXIMUM(8, 7),
+        HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+        HID_RI_USAGE(8, 0x57),         // Surface switch - Apple want this, not sure if they are happy with the collection below
+        HID_RI_REPORT_SIZE(8, 0x01),
+        HID_RI_REPORT_COUNT(8, 0x01),
+        HID_RI_LOGICAL_MAXIMUM(8, 1),
+        HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+
+        HID_RI_USAGE_PAGE(16, 0xFF),           // Vendor
+        HID_RI_REPORT_ID(8, REPORT_ID_DIGITIZER_CERTIFICATE),
+        HID_RI_USAGE(8, 0xC5),                 // Vendor usage
+        HID_RI_LOGICAL_MAXIMUM(16, 255),
+        HID_RI_REPORT_SIZE(8, 0x08),
+        HID_RI_REPORT_COUNT(16, 256),
+        HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+
+        HID_RI_POP(0),
+        HID_RI_END_COLLECTION(0),
+
+        HID_RI_USAGE_PAGE(8, 0x0D),            // Digitizers
+        HID_RI_USAGE(8, 0x0E),                 // Configuration
+        HID_RI_COLLECTION(8, 0x01),            // Application
+        HID_RI_PUSH(0),
+        HID_RI_REPORT_ID(8, REPORT_ID_DIGITIZER_CONFIGURATION),
+        HID_RI_USAGE(8, 0x22),                 // Finger
+        HID_RI_COLLECTION(8, 0x02),            // Logical
+        HID_RI_USAGE(8, 0x52),                 // Input mode
+        HID_RI_LOGICAL_MINIMUM(8, 0),
+        HID_RI_LOGICAL_MAXIMUM(8, 10),
+        HID_RI_REPORT_COUNT(8, 0x01),
+        HID_RI_REPORT_SIZE(8, 0x08),
+        HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+        HID_RI_END_COLLECTION(0),
+
+        HID_RI_USAGE(8, 0x22),                 // Finger
+        HID_RI_COLLECTION(8, 0x00),            // Physical
+        HID_RI_REPORT_ID(8, REPORT_ID_DIGITIZER_FUNCTION_SWITCH),
+        HID_RI_USAGE(8, 0x57),                 // Surface switch
+        HID_RI_USAGE(8, 0x58),                 // Button switch
+        HID_RI_LOGICAL_MAXIMUM(8, 1),
+        HID_RI_REPORT_COUNT(8, 0x02),
+        HID_RI_REPORT_SIZE(8, 0x01),
+        HID_RI_FEATURE(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+        HID_RI_REPORT_COUNT(8, 0x06),
+        HID_RI_FEATURE(8, HID_IOF_CONSTANT | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+        HID_RI_POP(0),
+        HID_RI_END_COLLECTION(0),
+    HID_RI_END_COLLECTION(0),
+#    endif
 #    ifndef DIGITIZER_SHARED_EP
 };
 #    endif
@@ -451,11 +663,11 @@ const USB_Descriptor_Device_t PROGMEM DeviceDescriptor = {
     .ReleaseNumber              = DEVICE_VER,
     .ManufacturerStrIndex       = 0x01,
     .ProductStrIndex            = 0x02,
-#if defined(SERIAL_NUMBER)
+#ifdef HAS_SERIAL_NUMBER
     .SerialNumStrIndex          = 0x03,
-#else
+#else // HAS_SERIAL_NUMBER
     .SerialNumStrIndex          = 0x00,
-#endif
+#endif // HAS_SERIAL_NUMBER
     .NumberOfConfigurations     = FIXED_NUM_CONFIGURATIONS
 };
 
@@ -990,7 +1202,7 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
         .Attributes             = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
         .EndpointSize           = JOYSTICK_EPSIZE,
         .PollingIntervalMS      = USB_POLLING_INTERVAL_MS
-    }
+    },
 #endif
 
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
@@ -1037,9 +1249,13 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
 /*
  * String descriptors
  */
+
+#define USB_DESCRIPTOR_SIZE_LITERAL_U16STRING(str) \
+    (sizeof(USB_Descriptor_Header_t) + sizeof(str) - sizeof(wchar_t)) // include header, don't count null terminator
+
 const USB_Descriptor_String_t PROGMEM LanguageString = {
     .Header = {
-        .Size                   = 4,
+        .Size                   = sizeof(USB_Descriptor_Header_t) + sizeof(uint16_t),
         .Type                   = DTYPE_String
     },
     .UnicodeString              = {LANGUAGE_ID_ENG}
@@ -1047,7 +1263,7 @@ const USB_Descriptor_String_t PROGMEM LanguageString = {
 
 const USB_Descriptor_String_t PROGMEM ManufacturerString = {
     .Header = {
-        .Size                   = sizeof(USBSTR(MANUFACTURER)),
+        .Size                   = USB_DESCRIPTOR_SIZE_LITERAL_U16STRING(USBSTR(MANUFACTURER)),
         .Type                   = DTYPE_String
     },
     .UnicodeString              = USBSTR(MANUFACTURER)
@@ -1055,23 +1271,69 @@ const USB_Descriptor_String_t PROGMEM ManufacturerString = {
 
 const USB_Descriptor_String_t PROGMEM ProductString = {
     .Header = {
-        .Size                   = sizeof(USBSTR(PRODUCT)),
+        .Size                   = USB_DESCRIPTOR_SIZE_LITERAL_U16STRING(USBSTR(PRODUCT)),
         .Type                   = DTYPE_String
     },
     .UnicodeString              = USBSTR(PRODUCT)
 };
 
+// clang-format on
+
 #if defined(SERIAL_NUMBER)
+// clang-format off
 const USB_Descriptor_String_t PROGMEM SerialNumberString = {
     .Header = {
-        .Size                   = sizeof(USBSTR(SERIAL_NUMBER)),
+        .Size                   = USB_DESCRIPTOR_SIZE_LITERAL_U16STRING(USBSTR(SERIAL_NUMBER)),
         .Type                   = DTYPE_String
     },
     .UnicodeString              = USBSTR(SERIAL_NUMBER)
 };
-#endif
-
 // clang-format on
+
+#else // defined(SERIAL_NUMBER)
+
+#    if defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE
+
+#        if defined(__AVR__)
+#            error Dynamically setting the serial number on AVR is unsupported as LUFA requires the string to be in PROGMEM.
+#        endif // defined(__AVR__)
+
+#        ifndef SERIAL_NUMBER_LENGTH
+#            define SERIAL_NUMBER_LENGTH (sizeof(hardware_id_t) * 2)
+#        endif
+
+#        define SERIAL_NUMBER_DESCRIPTOR_SIZE                                            \
+            (sizeof(USB_Descriptor_Header_t)                     /* Descriptor header */ \
+             + (((SERIAL_NUMBER_LENGTH) + 1) * sizeof(wchar_t))) /* Length of serial number, with potential extra character as we're converting 2 nibbles at a time */
+
+uint8_t SerialNumberString[SERIAL_NUMBER_DESCRIPTOR_SIZE] = {0};
+
+void set_serial_number_descriptor(void) {
+    static bool is_set = false;
+    if (is_set) {
+        return;
+    }
+    is_set = true;
+
+    static const char        hex_str[] = "0123456789ABCDEF";
+    hardware_id_t            id        = get_hardware_id();
+    USB_Descriptor_String_t* desc      = (USB_Descriptor_String_t*)SerialNumberString;
+
+    // Copy across nibbles from the hardware ID as unicode hex characters
+    int      length = MIN(sizeof(id) * 2, SERIAL_NUMBER_LENGTH);
+    uint8_t* p      = (uint8_t*)&id;
+    for (int i = 0; i < length; i += 2) {
+        desc->UnicodeString[i + 0] = hex_str[p[i / 2] >> 4];
+        desc->UnicodeString[i + 1] = hex_str[p[i / 2] & 0xF];
+    }
+
+    desc->Header.Size = sizeof(USB_Descriptor_Header_t) + (length * sizeof(wchar_t)); // includes header, don't count null terminator
+    desc->Header.Type = DTYPE_String;
+}
+
+#    endif // defined(SERIAL_NUMBER_USE_HARDWARE_ID) && SERIAL_NUMBER_USE_HARDWARE_ID == TRUE
+
+#endif // defined(SERIAL_NUMBER)
 
 /**
  * This function is called by the library when in device mode, and must be overridden (see library "USB Descriptors"
@@ -1114,13 +1376,18 @@ uint16_t get_usb_descriptor(const uint16_t wValue, const uint16_t wIndex, const 
                     Size    = pgm_read_byte(&ProductString.Header.Size);
 
                     break;
-#if defined(SERIAL_NUMBER)
+#ifdef HAS_SERIAL_NUMBER
                 case 0x03:
-                    Address = &SerialNumberString;
-                    Size    = pgm_read_byte(&SerialNumberString.Header.Size);
+                    Address = (const USB_Descriptor_String_t*)&SerialNumberString;
+#    if defined(SERIAL_NUMBER)
+                    Size = pgm_read_byte(&SerialNumberString.Header.Size);
+#    else
+                    set_serial_number_descriptor();
+                    Size = ((const USB_Descriptor_String_t*)SerialNumberString)->Header.Size;
+#    endif
 
                     break;
-#endif
+#endif // HAS_SERIAL_NUMBER
             }
 #ifdef OS_DETECTION_ENABLE
             process_wlength(wLength);

@@ -196,6 +196,8 @@ enum usb_interfaces {
     TOTAL_INTERFACES
 };
 
+#define IS_VALID_INTERFACE(i) ((i) >= 0 && (i) < TOTAL_INTERFACES)
+
 #define NEXT_EPNUM __COUNTER__
 
 /*
@@ -277,14 +279,16 @@ enum usb_endpoints {
 #    define MAX_ENDPOINTS USB_MAX_ENDPOINTS
 #endif
 
-// TODO - ARM_ATSAM
-
 #if (NEXT_EPNUM - 1) > MAX_ENDPOINTS
 #    error There are not enough available endpoints to support all functions. Please disable one or more of the following: Mouse Keys, Extra Keys, Console, NKRO, MIDI, Serial, Steno
 #endif
 
 #define KEYBOARD_EPSIZE 8
-#define SHARED_EPSIZE 32
+#if defined(DIGITIZER_ENABLE) && defined(DIGITIZER_SHARED_EP)
+#    define SHARED_EPSIZE 64
+#else
+#    define SHARED_EPSIZE 32
+#endif
 #define MOUSE_EPSIZE 16
 #define RAW_EPSIZE 32
 #define CONSOLE_EPSIZE 32
@@ -292,6 +296,6 @@ enum usb_endpoints {
 #define CDC_NOTIFICATION_EPSIZE 8
 #define CDC_EPSIZE 16
 #define JOYSTICK_EPSIZE 8
-#define DIGITIZER_EPSIZE 8
+#define DIGITIZER_EPSIZE 64
 
 uint16_t get_usb_descriptor(const uint16_t wValue, const uint16_t wIndex, const uint16_t wLength, const void** const DescriptorAddress);
