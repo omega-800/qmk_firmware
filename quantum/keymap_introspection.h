@@ -92,6 +92,7 @@ tap_dance_action_t* tap_dance_get(uint16_t tap_dance_idx);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Key Overrides
 
+/*
 #if defined(KEY_OVERRIDE_ENABLE)
 
 // Forward declaration of key_override_t so we don't need to deal with header reordering
@@ -109,3 +110,4 @@ const key_override_t* key_override_get_raw(uint16_t key_override_idx);
 const key_override_t* key_override_get(uint16_t key_override_idx);
 
 #endif // defined(KEY_OVERRIDE_ENABLE)
+*/

@@ -86,6 +86,7 @@ static bool enabled = true;
 
 // Forward decls
 static const key_override_t *clear_active_override(const bool allow_reregister);
+__attribute__((weak)) const key_override_t **key_overrides = NULL;
 
 void key_override_on(void) {
     enabled = true;
@@ -245,12 +246,156 @@ static bool check_activation_event(const key_override_t *override, const bool ke
 
 /** Iterates through the list of key overrides and tries activating each, until it finds one that activates or reaches the end of overrides. Returns true if the key action for `keycode` should be sent */
 static bool try_activating_override(const uint16_t keycode, const uint8_t layer, const bool key_down, const bool is_mod, const uint8_t active_mods, bool *activated) {
+    /*
     if (key_override_count() == 0) {
         return true;
     }
+    */
+    if (key_overrides == NULL) {
+        return true;
+    }
 
+    /*
     for (uint8_t i = 0; i < key_override_count(); i++) {
         const key_override_t *const override = key_override_get(i);
+
+        // End of array
+        if (override == NULL) {
+            break;
+        }
+
+        // Fast, but not full mods check. Most key presses will not have any mods down, and most overrides will require mods. Hence here we filter overrides that require mods to be down while no mods are down
+        if (active_mods == 0 && override->trigger_mods != 0) {
+            key_override_printf("Not activating override: Modifiers don't match\n");
+            continue;
+        }
+
+        // Check layer
+        if ((override->layers & (1 << layer)) == 0) {
+            key_override_printf("Not activating override: Not set to activate on pressed layer\n");
+            continue;
+        }
+
+        // Check allowed activation events
+        if (!check_activation_event(override, key_down, is_mod)) {
+            key_override_printf("Not activating override: Activation event not allowed\n");
+            continue;
+        }
+
+        const bool is_trigger = override->trigger == keycode;
+
+        // Check if trigger lifted. This is a small optimization in order to skip the remaining checks
+        if (is_trigger && !key_down) {
+            key_override_printf("Not activating override: Trigger lifted\n");
+            continue;
+        }
+
+        // If the trigger is KC_NO it means 'no key', so only the required modifiers need to be down.
+        const bool no_trigger = override->trigger == KC_NO;
+
+        // Check if aleady active
+        if (override == active_override) {
+            key_override_printf("Not activating override: Alerady actived\n");
+            continue;
+        }
+
+        // Check if enabled
+        if (override->enabled != NULL && !((*(override->enabled) & 1))) {
+            key_override_printf("Not activating override: Not enabled\n");
+            continue;
+        }
+
+        // Check mods precisely
+        if (!key_override_matches_active_modifiers(override, active_mods)) {
+            key_override_printf("Not activating override: Modifiers don't match\n");
+            continue;
+        }
+
+        // Check if trigger key is down.
+        const bool trigger_down = is_trigger && key_down;
+
+        // At this point, all requirements for activation are checked, except whether the trigger key is pressed. Now we check if the required trigger is down
+        // If no trigger key is required, yes.
+        // If the trigger was just pressed, yes.
+        // If the last non-mod key that was pressed down is the trigger key, yes.
+        bool should_activate = no_trigger || trigger_down || last_key_down == override->trigger;
+
+        if (!should_activate) {
+            key_override_printf("Not activating override. Trigger not down\n");
+            continue;
+        }
+
+        key_override_printf("Activating override\n");
+
+        clear_active_override(false);
+
+#ifdef DUMMY_MOD_NEUTRALIZER_KEYCODE
+        // Send a dummy keycode before unregistering the modifier(s)
+        // so that suppressing the modifier(s) doesn't falsely get interpreted
+        // by the host OS as a tap of a modifier key.
+        // For example, unintended activations of the start menu on Windows when
+        // using a GUI+<kc> key override with suppressed mods.
+        neutralize_flashing_modifiers(active_mods);
+#endif
+
+        active_override                 = override;
+        active_override_trigger_is_down = true;
+
+        set_suppressed_override_mods(override->suppressed_mods);
+
+        if (!trigger_down && !no_trigger) {
+            // When activating a key override the trigger is is always unregistered. In the case where the key that newly pressed is not the trigger key, we have to explicitly remove the trigger key from the keyboard report. If the trigger was just pressed down we simply suppress the event which also has the effect of the trigger key not being registered in the keyboard report.
+            if (IS_BASIC_KEYCODE(override->trigger)) {
+                del_key(override->trigger);
+            } else {
+                unregister_code(override->trigger);
+            }
+        }
+
+        const uint16_t mod_free_replacement = clear_mods_from(override->replacement);
+
+        bool register_replacement = mod_free_replacement != KC_NO &&   // KC_NO is never registered
+                                    mod_free_replacement < SAFE_RANGE; // Custom keycodes are never registered
+
+        // Try firing the custom handler
+        if (override->custom_action != NULL) {
+            register_replacement &= override->custom_action(true, override->context);
+        }
+
+        if (register_replacement) {
+            const uint8_t override_mods = extract_mod_bits(override->replacement);
+            set_weak_override_mods(override_mods);
+
+            // If this is a modifier event that activates the key override we _always_ defer the actual full activation of the override
+            if (is_mod) {
+                key_override_printf("Deferring register replacement key\n");
+                schedule_deferred_register(mod_free_replacement);
+                send_keyboard_report();
+            } else {
+                if (IS_BASIC_KEYCODE(mod_free_replacement)) {
+                    add_key(mod_free_replacement);
+                } else {
+                    key_override_printf("NOT KEY 2\n");
+                    send_keyboard_report();
+                    // On macOS there seems to be a race condition when it comes to the keyboard report and consumer keycodes. It seems the OS may recognize a consumer keycode before an updated keyboard report, even if the keyboard report is actually sent before the consumer key. I assume it is some sort of race condition because it happens infrequently and very irregularly. Waiting for about at least 10ms between sending the keyboard report and sending the consumer code has shown to fix this.
+                    wait_ms(10);
+                    register_code(mod_free_replacement);
+                }
+            }
+        } else {
+            // If not registering the replacement key send keyboard report to update the unregistered keys.
+            send_keyboard_report();
+        }
+
+        *activated = true;
+
+        // If the trigger is down, suppress the event so that it does not get added to the keyboard report.
+        return !trigger_down;
+    }
+    */
+
+    for (uint8_t i = 0;; i++) {
+        const key_override_t *const override = key_overrides[i];
 
         // End of array
         if (override == NULL) {

@@ -151,6 +151,7 @@ __attribute__((weak)) tap_dance_action_t* tap_dance_get(uint16_t tap_dance_idx) 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Key Overrides
 
+/*
 #if defined(KEY_OVERRIDE_ENABLE)
 
 uint16_t key_override_count_raw(void) {
@@ -175,6 +176,7 @@ __attribute__((weak)) const key_override_t* key_override_get(uint16_t key_overri
 }
 
 #endif // defined(KEY_OVERRIDE_ENABLE)
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Community modules (must be last in this file!)

@@ -1,0 +1,3 @@
+#pragma once
+//#define MASTER_RIGHT
+#define UNICODE_SELECTED_MODES UNICODE_MODE_LINUX
