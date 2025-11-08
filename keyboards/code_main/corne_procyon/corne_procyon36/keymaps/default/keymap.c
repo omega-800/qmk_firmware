@@ -138,11 +138,12 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_BASE] =	LAYOUT(
 
+
          KC_TAB,    KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,                         KC_Y,    KC_U,    KC_I,    KC_O,   KC_P,  CH_DLR,
     //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
         KC_CAPS,    KC_A,    KC_S,    KC_D,    KC_F,    KC_G,                         KC_H,    KC_J,    KC_K,    KC_L, CH_LCBR, CH_RCBR,
     //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-        CH_QUOT,    KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                         KC_N,    KC_M, CH_COMM,  CH_DOT, CH_MINS, KC_SLSH,
+        CH_QUOT,    KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                         KC_N,    KC_M, CH_COMM,  CH_DOT, CH_MINS, CH_SLSH,
     //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
                         KC_LGUI,    KC_RSFT,   RAISE,  KC_ESC,                        KC_SPC,   LOWER,  KC_ENT,  KC_RGUI
                                 //`----------------------------------'  `------------------------------------'
@@ -154,7 +155,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
         KC_BSPC, KC_BRID, KC_BRIU, KC_MUTE, KC_VOLD, KC_VOLU,                       KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT, CH_LBRC, CH_RBRC,
     //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-        CU_TILD, CU_CIRC, CU_GRV, KC_MPRV, KC_MPLY, KC_MNXT,                       CU_TGSL,  _______, _______, CH_ASTR, CH_BSLS, CH_EQL,
+        CU_TILD, CU_CIRC, CU_GRV, KC_MPRV, KC_MPLY, KC_MNXT,                       CU_TGSL,  KC_PGDN, KC_PGUP, CH_ASTR, CH_BSLS, CH_EQL,
     //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
                         KC_LGUI,    KC_LSFT,   RAISE,  KC_ESC,                        KC_SPC,   LOWER,  KC_ENT,  KC_RGUI
                                 //`-----------------------------------'  `----------------------------------'
@@ -162,9 +163,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 	[_RAISE] =	LAYOUT(
         CH_NOT,  CH_PERC, CH_CCED, CH_EURO, CH_BRKP, CH_CENT,                       CH_AT,   CH_7,    CH_8,    CH_9,    CH_EXLM, CH_UDIA,
     //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-        KC_DEL,  CH_DEG,  CH_SECT, KC_PGUP, CH_DIAE, CH_PND,                        CH_AMPR, CH_4,    CH_5,    CH_6,    CH_ODIA, CH_ADIA,
+        KC_DEL,  CH_DEG,  CH_SECT, CH_ASTR, CH_DIAE, CH_PND,                        CH_AMPR, CH_4,    CH_5,    CH_6,    CH_ODIA, CH_ADIA,
     //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-        _______, KC_SLEP, KC_WAKE, KC_PGDN, _______, _______,                       CH_HASH, CH_1,    CH_2,    CH_3,    CH_0,   CH_DOT,
+        CH_DQUO, KC_SLEP, KC_WAKE, _______, _______, _______,                       CH_HASH, CH_1,    CH_2,    CH_3,    CH_0,   CH_DOT,
     //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
                         KC_LGUI,    KC_LSFT,   RAISE,  KC_ESC,                        KC_SPC,   LOWER,  KC_ENT,  KC_RGUI
                                 //`----------------------------------'  `------------------------------------'
