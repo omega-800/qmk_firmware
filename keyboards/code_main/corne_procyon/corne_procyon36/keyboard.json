@@ -27,7 +27,7 @@
     "encoder": {
         "enabled" : true,
         "rotary" : [
-            {"pin_a": "GP16", "pin_b": "GP17"}
+            {"pin_a": "GP19", "pin_b": "GP15"}
         ]
     },
     "processor": "RP2040",
@@ -78,7 +78,7 @@
             "typing_heatmap": true
         },
         "default": {
-            "animation": "breathing",
+            "animation": "typing_heatmap",
             "hue": 200
         },
         "driver": "ws2812",

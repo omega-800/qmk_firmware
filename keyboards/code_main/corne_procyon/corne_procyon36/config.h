@@ -54,3 +54,5 @@
 
 // Reduce soft serial speed: Work around rp2040 issues
 #define SELECT_SOFT_SERIAL_SPEED 4
+
+#define MASTER_RIGHT
